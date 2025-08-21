@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: customcrm-db-app
+    restart: always
+    environment:
+      POSTGRES_USER: customcrm
+      POSTGRES_PASSWORD: customcrm
+      POSTGRES_DB: customcrm
+    ports:
+      - "5433:5433"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
