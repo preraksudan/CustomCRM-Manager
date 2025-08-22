@@ -114,3 +114,20 @@ export const refresh = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 };
+
+
+export const logout = async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(400).json({ message: "Refresh token is required" });
+  }
+
+  // Invalidate the refresh token in DB
+  await prisma.user.updateMany({
+    where: { refreshToken },
+    data: { refreshToken: null },
+  });
+
+  return res.json({ message: "Logged out successfully" });
+};
