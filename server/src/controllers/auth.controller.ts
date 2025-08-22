@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../utils/prisma";
+import { generateTokens } from "../utils/token.utils";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -62,27 +63,52 @@ export const login = async (req: Request, res: Response) => {
     if (!isValid) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
+    const { accessToken, refreshToken } = generateTokens(user.id, user.email);
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "1h" }
-    );
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { refreshToken }
+      });
 
-    res.json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-      },
-    });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLogin: new Date() },
+      });
+
+      return res.json({ accessToken, refreshToken });
+
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+};
+
+
+export const refresh = async (req: Request, res: Response) => {
+
+  console.log( req.body );
+
+  try {
+    const { refreshToken } = req.body || {};
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token required" });
+    }
+
+    const storedUser = await prisma.user.findFirst({ where: { refreshToken } });
+    if (!storedUser) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    const newTokens = generateTokens(storedUser.id, storedUser.email);
 
     await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() },
+      where: { id: storedUser.id },
+      data: { refreshToken: newTokens.refreshToken }
     });
-    
+
+    return res.json(newTokens);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });

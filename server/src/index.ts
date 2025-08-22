@@ -16,13 +16,6 @@ app.use("/api/auth", authRoutes);
 
 app.use("/api", dashboardRoutes);
 
-
-// root test route
-// 👇 Simple test route
-// app.get("/api/dashboard", (req, res) => {
-//   res.send("🚀 Dashboard is showing");
-// });
-
 // start server
 app.listen(PORT, () => {
   console.log(`✅ Server is running on http://localhost:${PORT}`);
