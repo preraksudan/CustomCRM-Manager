@@ -50,7 +50,6 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Check if user exists
     const user = await prisma.user.findUnique({
       where: { email },
     });
@@ -59,20 +58,17 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // 2. Compare passwords
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // 3. Create JWT
     const token = jwt.sign(
       { userId: user.id, email: user.email },
       process.env.JWT_SECRET as string,
       { expiresIn: "1h" }
     );
 
-    // 4. Send response
     res.json({
       message: "Login successful",
       token,
@@ -81,6 +77,12 @@ export const login = async (req: Request, res: Response) => {
         email: user.email,
       },
     });
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() },
+    });
+    
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });
